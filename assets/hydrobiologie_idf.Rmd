@@ -1,0 +1,294 @@
+---
+title: "Suivis hydrobiologiques"
+author: "DR OFB Île-de-France"
+date: "`r Sys.Date()`"
+output: 
+  html_document :
+    highlight: pygments 
+    theme: flatly 
+    css: "theme_html2.css"
+# Language
+lang: fr-FR
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE, echo=FALSE, warning=FALSE, message = FALSE)
+import::from("magrittr", "%>%")
+```
+
+```{r}
+load("../data/referentiels.rda")
+
+if (!file.exists("../data/indices_hydrobio.rds")) {
+  to_update <- TRUE
+} else {
+  old_data <- readRDS("../data/indices_hydrobio.rds") %>% 
+    dplyr::distinct(code_station_hydrobio, code_support, date_prelevement) %>% 
+    dplyr::group_by(code_station_hydrobio, code_support) %>% 
+    dplyr::summarise(old = max(date_prelevement), .groups = "drop")
+  
+  new_data <- hubeau::get_hydrobio_indices(
+  list(
+    code_departement = "75,77,78,91,92,93,94,95,10,52",
+    code_indice = "2928,5856,5910,7613,6951,7036" #IBMR, IBD, IBG-équivalent, I2M2, Indice invertébrés grand cours d'eau, IPR
+  )
+) %>%
+  sf::st_as_sf(coords = c("coordonnee_x", "coordonnee_y"), crs = 2154, remove=FALSE) %>%
+  rmapshaper::ms_clip(limites_sn) %>%
+  dplyr::distinct(
+    code_station_hydrobio, code_support, libelle_support, code_prelevement, date_prelevement, code_indice, libelle_indice, resultat_indice, code_qualification, libelle_qualification
+  ) %>%
+  dplyr::mutate(
+    date_prelevement = lubridate::as_date(date_prelevement)
+  ) %>%
+  dplyr::mutate(annee = lubridate::year(date_prelevement)) %>%
+  dplyr::filter(!is.na(resultat_indice)) %>% 
+    dplyr::distinct(code_station_hydrobio, code_support, date_prelevement) %>% 
+    dplyr::group_by(code_station_hydrobio, code_support) %>% 
+    dplyr::summarise(new = max(date_prelevement), .groups = "drop")
+  
+  to_update <- dplyr::full_join(
+    old_data, new_data,
+    by = c("code_station_hydrobio", "code_support")
+  ) %>% 
+    dplyr::mutate(to_update = new > old | (!is.na(new) & is.na(old))) %>% 
+    dplyr::pull(to_update) %>% 
+    any()
+}
+  
+if (to_update) {
+  source("../scripts/get_data_hydrobio.R")
+  source("../scripts/prep_data.R")
+  source("../scripts/prep_graphs.R")
+}
+```
+
+
+```{r}
+stations_sf <- readRDS("../data/stations_sf.rds")
+bbox_stations <- readRDS("../data/bbox_stations.rds")
+
+couleurs_etat <- c(
+  `indéterminé` = "#CDC0B0",
+  mauvais = "#EE2C2C",
+  `médiocre` = "#FF7F00",
+  moyen = "#FFC125",
+  bon = "#A2CD5A",
+  `très bon` = "#1874CD"
+)
+
+popups_indices <- file.path(
+  "www/popups",
+  list.files(path = "../www/popups", pattern = ".png") 
+  ) %>% 
+     (function(x) {
+      names(x) <- x %>% 
+        stringr::str_remove_all(pattern = "www/popups/") %>% 
+        stringr::str_remove_all(pattern = ".png")
+      
+      x
+    })
+
+```
+
+```{r, include=TRUE, out.width='100%'}
+(
+  mapview::mapview(
+    edl_2022 %>% 
+      dplyr::mutate(
+        LABEL = paste0(NOM.MASSE.D.EAU, "<br>", ETAT.BIOLOGIQUE)
+      ) %>% 
+      dplyr::select(LABEL, ETAT.BIOLOGIQUE),
+    layer.name = "Etat biologique 2022",
+    legend = FALSE,
+    homebutton = FALSE,
+    zcol = "ETAT.BIOLOGIQUE",
+    label = "LABEL",
+    alpha.regions = .5,
+    col.regions = unname(couleurs_etat[as.character(edl_2022$ETAT.BIOLOGIQUE)]),
+    popup = FALSE,
+    lwd = 1
+  ) +
+  mapview::mapview(
+    edl_2022 %>% 
+      dplyr::mutate(
+        LABEL = paste0(NOM.MASSE.D.EAU, "<br>", ETAT.ECOLOGIQUE)
+      ) %>% 
+      dplyr::select(LABEL, ETAT.ECOLOGIQUE),
+    layer.name = "Etat écologique 2022",
+    legend = FALSE,
+    homebutton = FALSE,
+    zcol = "ETAT.ECOLOGIQUE",
+    label = "LABEL",
+    alpha.regions = .5,
+    col.regions = unname(couleurs_etat[as.character(edl_2022$ETAT.ECOLOGIQUE)]),
+    popup = FALSE,
+    lwd = 1
+  ) +
+  mapview::mapview(
+    edl_2022 %>% 
+      dplyr::mutate(
+        LABEL = paste0(NOM.MASSE.D.EAU, "<br>", ETAT.PHYSICO.CHIMIQUE)
+      ) %>% 
+      dplyr::select(LABEL, ETAT.PHYSICO.CHIMIQUE),
+    layer.name = "Etat physico-chimique 2022",
+    legend = FALSE,
+    homebutton = FALSE,
+    zcol = "ETAT.PHYSICO.CHIMIQUE",
+    label = "LABEL",
+    alpha.regions = .5,
+    col.regions = unname(couleurs_etat[as.character(edl_2022$ETAT.PHYSICO.CHIMIQUE)]),
+    popup = FALSE,
+    lwd = 1
+  ) +
+  mapview::mapview(
+    masque_metropole,
+    alpha.regions = .75,
+    legend = FALSE,
+    homebutton = FALSE,
+    stroke = FALSE,
+    col.regions = "white",
+    label = NULL,
+    labelOptions = c(opacity = 0),
+    popup = FALSE
+  ) +
+    mapview::mapview(
+      reseau_hydro,
+      layer.name = "Réseau hydrographique",
+      legend = FALSE,
+      homebutton = FALSE,
+      col.regions = "#00B2EE",
+      cex = 1,
+      label = "TopoOH",
+      popup = FALSE
+    ) +
+  mapview::mapview(
+    limites_sn %>% 
+      sf::st_cast(to = "LINESTRING"),
+    lwd = 2,
+    color = "black",
+    popup = FALSE,
+    legend = FALSE,
+    homebutton = FALSE,
+    label = FALSE
+    ) +
+  mapview::mapview(
+    limites_idf %>% 
+      sf::st_cast(to = "LINESTRING"),
+    lwd = 2,
+    color = "black",
+    popup = FALSE,
+    legend = FALSE,
+    homebutton = FALSE,
+    label = FALSE
+    ) +
+  mapview::mapview(
+    stations_sf %>% 
+      dplyr::select(libelle_station_hydrobio, taille_symbole, nb_taxons),
+    layer.name = "Indices",
+    legend = FALSE,
+    label = "libelle_station_hydrobio",
+    popup = leafpop::popupImage(
+      popups_indices[stations_sf$code_station_hydrobio],
+      height = 400, width = 600, embed = FALSE
+    ),
+    cex = "taille_symbole",
+    zcol = "nb_taxons",
+    color = stations_sf$colour,
+    lwd = 2,
+    alpha.region = .75
+    )
+  ) %>% 
+  (
+    function(map) {
+  map@map <- map@map %>% 
+  leaflet::addTiles(group = "OSM") %>%
+  #addProviderTiles(providers$CartoDB.PositronOnlyLabels, group = "Villes") %>% 
+  leaflet::addTiles("http://wxs.ign.fr/choisirgeoportail/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+           options = c(leaflet::WMSTileOptions(tileSize = 256),
+                       leaflet::providerTileOptions(minZoom = 1, maxZoom = 15)),
+           attribution='<a target="_blank" href="https://www.geoportail.gouv.fr/">Geoportail France</a>',
+           group = "Plan IGN"
+  ) %>%
+  leaflet::addTiles("http://wxs.ign.fr/choisirgeoportail/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+           options = c(leaflet::WMSTileOptions(tileSize = 256),
+                       leaflet::providerTileOptions(minZoom = 1, maxZoom = 22)),
+           attribution='<a target="_blank" href="https://www.geoportail.gouv.fr/">Geoportail France</a>',
+           group = "Photo aérienne"
+  ) %>%
+  leaflet::addLayersControl(
+    baseGroups    = c("OSM","Plan IGN","Photo aérienne",  "Etat écologique 2022","Etat biologique 2022", "Etat physico-chimique 2022"),
+    overlayGroups = c("Réseau hydrographique", "Indices"),
+    options       = leaflet::layersControlOptions(collapsed = TRUE)) %>% 
+    leaflet::fitBounds(
+      lng1 = bbox_stations[["xmin"]],
+      lat1 = bbox_stations[["ymin"]],
+      lng2 = bbox_stations[["xmax"]],
+      lat2 = bbox_stations[["ymax"]]
+    ) %>% 
+    leaflet.extras::addResetMapButton()
+  
+  map
+    }
+)
+```
+
+```{r, eval=FALSE}
+get_taxa_counts <- function(indices, cd_support, max_prel = 200) {
+  indices %>% 
+    dplyr::filter(code_support == cd_support) %>% 
+    dplyr::pull(code_prelevement) %>% 
+    unique() %>% 
+    (function(x) {
+      split(
+        x,
+        ceiling(seq_along(x)/max_prel)
+        )
+      }) %>% 
+    purrr::map_df(
+      function(CdPrel) {
+        hubeau::get_hydrobio_taxons(
+          list(
+            code_prelevement = paste(CdPrel, collapse = ",")
+          )
+        ) %>% 
+        dplyr::group_by(
+          code_station_hydrobio, code_prelevement, date_prelevement,
+          code_appel_taxon, libelle_appel_taxon
+        ) %>% 
+        dplyr::summarise(resultat_taxon = sum(resultat_taxon), .groups = "drop")
+      }
+    )
+}
+```
+
+```{r, eval=FALSE}
+taxons_invertebres <- get_taxa_counts(indices_hydrobio, cd_support = 13)
+taxons_diatomees   <- get_taxa_counts(indices_hydrobio, cd_support = 10)
+taxons_macrophytes <- get_taxa_counts(indices_hydrobio, cd_support = 27)
+taxons_poissons    <- get_taxa_counts(indices_hydrobio, cd_support = 4)
+```
+
+```{r, eval=FALSE}
+plot_number_taxa <- function(taxons, ..., group) {
+  taxons %>% 
+    dplyr::group_by(...) %>% 
+    dplyr::summarise(nb_taxons = dplyr::n_distinct(libelle_appel_taxon), .groups = "drop") %>% 
+    ggplot2::ggplot(mapping = ggplot2::aes(y = nb_taxons, fill = {{group}})) +
+    ggplot2::geom_boxplot()
+}
+```
+
+```{r, eval=FALSE}
+(plot_number_taxa(
+  taxons = dplyr::bind_rows(
+    dplyr::mutate(taxons_diatomees, groupe = "diatomées"),
+    dplyr::mutate(taxons_macrophytes, groupe = "macrophytes"),
+    dplyr::mutate(taxons_invertebres, groupe = "invertébres"),
+    dplyr::mutate(taxons_poissons, groupe = "poissons")
+  ),
+  code_station_hydrobio, groupe,
+  group = groupe
+)
+)
+```
