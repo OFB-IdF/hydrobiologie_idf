@@ -91,7 +91,16 @@ popups_indices <- file.path(
 
 ```
 
-```{r, include=TRUE, out.width='100%'}
+:::: {style="display: flex;"}
+
+::: {style="flex-basis: 55%;"}
+
+```{r, include=TRUE, out.width='100%', out.height='600px'}
+limites_sn_l <- limites_sn %>% 
+      sf::st_cast(to = "LINESTRING")
+limites_idf_l <- limites_idf %>% 
+      sf::st_cast(to = "LINESTRING")
+
 (
   mapview::mapview(
     edl_2022 %>% 
@@ -163,8 +172,7 @@ popups_indices <- file.path(
       popup = FALSE
     ) +
   mapview::mapview(
-    limites_sn %>% 
-      sf::st_cast(to = "LINESTRING"),
+    limites_sn_l,
     lwd = 2,
     color = "black",
     popup = FALSE,
@@ -173,8 +181,7 @@ popups_indices <- file.path(
     label = FALSE
     ) +
   mapview::mapview(
-    limites_idf %>% 
-      sf::st_cast(to = "LINESTRING"),
+    limites_idf_l,
     lwd = 2,
     color = "black",
     popup = FALSE,
@@ -232,6 +239,27 @@ popups_indices <- file.path(
     }
 )
 ```
+
+:::
+
+::: {style="flex-basis: 45%;"}
+
+## {.tabset .tabset-pills}
+
+### Chroniques
+
+```{r, include=TRUE, out.width='100%'}
+source("../scripts/plot_chroniques.R")
+data_graphs <- readRDS("../data/data_graphs.rds")
+
+plot_chroniques(stations_sf, data_graphs, interactive = TRUE)
+```
+
+### ...
+
+:::
+
+::::
 
 ```{r, eval=FALSE}
 get_taxa_counts <- function(indices, cd_support, max_prel = 200) {

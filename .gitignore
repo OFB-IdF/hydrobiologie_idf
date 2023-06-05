@@ -33,3 +33,7 @@ vignettes/*.pdf
 *.knit.md
 
 *.zip
+
+assets/hydrobiologie_idf.html
+
+index.html
