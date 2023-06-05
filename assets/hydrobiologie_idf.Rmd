@@ -95,6 +95,8 @@ popups_indices <- file.path(
 
 ::: {style="flex-basis: 53%;"}
 
+##
+
 ```{r, include=TRUE, out.width='100%', out.height='500px'}
 limites_sn_l <- limites_sn %>% 
       sf::st_cast(to = "LINESTRING")
