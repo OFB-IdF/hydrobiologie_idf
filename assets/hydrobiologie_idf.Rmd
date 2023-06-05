@@ -91,7 +91,12 @@ popups_indices <- file.path(
 
 ```
 
-```{r, include=TRUE, out.width='100%'}
+```{r, include=TRUE, out.width='100%', out.height='600px'}
+limites_sn_l <- limites_sn %>% 
+      sf::st_cast(to = "LINESTRING")
+limites_idf_l <- limites_idf %>% 
+      sf::st_cast(to = "LINESTRING")
+
 (
   mapview::mapview(
     edl_2022 %>% 
@@ -163,8 +168,7 @@ popups_indices <- file.path(
       popup = FALSE
     ) +
   mapview::mapview(
-    limites_sn %>% 
-      sf::st_cast(to = "LINESTRING"),
+    limites_sn_l,
     lwd = 2,
     color = "black",
     popup = FALSE,
@@ -173,8 +177,7 @@ popups_indices <- file.path(
     label = FALSE
     ) +
   mapview::mapview(
-    limites_idf %>% 
-      sf::st_cast(to = "LINESTRING"),
+    limites_idf_l,
     lwd = 2,
     color = "black",
     popup = FALSE,
