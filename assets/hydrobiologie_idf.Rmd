@@ -93,9 +93,9 @@ popups_indices <- file.path(
 
 :::: {style="display: flex;"}
 
-::: {style="flex-basis: 55%;"}
+::: {style="flex-basis: 53%;"}
 
-```{r, include=TRUE, out.width='100%', out.height='600px'}
+```{r, include=TRUE, out.width='100%', out.height='500px'}
 limites_sn_l <- limites_sn %>% 
       sf::st_cast(to = "LINESTRING")
 limites_idf_l <- limites_idf %>% 
@@ -242,7 +242,7 @@ limites_idf_l <- limites_idf %>%
 
 :::
 
-::: {style="flex-basis: 45%;"}
+::: {style="flex-basis: 47%;"}
 
 ## {.tabset .tabset-pills}
 
