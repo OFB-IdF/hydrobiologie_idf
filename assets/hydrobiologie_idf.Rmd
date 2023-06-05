@@ -93,7 +93,7 @@ popups_indices <- file.path(
 
 :::: {style="display: flex;"}
 
-::: {style="flex-basis: 75%;"}
+::: {style="flex-basis: 55%;"}
 
 ```{r, include=TRUE, out.width='100%', out.height='600px'}
 limites_sn_l <- limites_sn %>% 
@@ -242,9 +242,20 @@ limites_idf_l <- limites_idf %>%
 
 :::
 
-::: {}
+::: {style="flex-basis: 45%;"}
 
+## {.tabset .tabset-pills}
 
+### Chroniques
+
+```{r, include=TRUE, out.width='100%'}
+source("../scripts/plot_chroniques.R")
+data_graphs <- readRDS("../data/data_graphs.rds")
+
+plot_chroniques(stations_sf, data_graphs, interactive = TRUE)
+```
+
+### ...
 
 :::
 
