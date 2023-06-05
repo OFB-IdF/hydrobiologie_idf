@@ -199,7 +199,7 @@ limites_idf_l <- limites_idf %>%
     label = "libelle_station_hydrobio",
     popup = leafpop::popupImage(
       popups_indices[stations_sf$code_station_hydrobio],
-      height = 400, width = 600, embed = FALSE
+      height = 360, width = 540, embed = FALSE
     ),
     cex = "taille_symbole",
     zcol = "nb_taxons",
