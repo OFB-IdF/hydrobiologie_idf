@@ -244,7 +244,11 @@ limites_idf_l <- limites_idf %>%
 
 :::
 
-::: {style="flex-basis: 47%;"}
+::: {style="flex-basis: 1%;"}
+
+:::
+
+::: {style="flex-basis: 46%;"}
 
 ## {.tabset .tabset-pills}
 
