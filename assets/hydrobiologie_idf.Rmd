@@ -91,6 +91,10 @@ popups_indices <- file.path(
 
 ```
 
+:::: {style="display: flex;"}
+
+::: {style="flex-basis: 75%;"}
+
 ```{r, include=TRUE, out.width='100%', out.height='600px'}
 limites_sn_l <- limites_sn %>% 
       sf::st_cast(to = "LINESTRING")
@@ -235,6 +239,16 @@ limites_idf_l <- limites_idf %>%
     }
 )
 ```
+
+:::
+
+::: {}
+
+
+
+:::
+
+::::
 
 ```{r, eval=FALSE}
 get_taxa_counts <- function(indices, cd_support, max_prel = 200) {
