@@ -42,7 +42,7 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
       Chronique = cut(
         nb_annee,
         breaks = c(0, 5, 10, 15, 20, 50),
-        labels = c("< 5 ans", "5-10", "10-15", "15-20", "> 20 ans"),
+        labels = c("< 5", "5-10", "10-15", "15-20", "> 20 ans"),
         include.lowest = TRUE
         )
     ) %>%
