@@ -91,6 +91,12 @@ popups_indices <- file.path(
 
 ```
 
+```{r, include=TRUE}
+shared_stations <- crosstalk::SharedData$new(stations_sf %>% 
+      dplyr::select(EQB, libelle_station, taille_symbole, colour_eqb, colour))
+
+```
+
 :::: {style="display: flex;"}
 
 ::: {style="flex-basis: 53%;"}
