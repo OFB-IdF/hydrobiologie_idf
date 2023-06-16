@@ -11,7 +11,15 @@ indices_moy_an <- indices_hydrobio %>%
   dplyr::summarise(
     resultat_moy = mean(resultat_indice),
     .groups = "drop"
+    ) %>%
+  dplyr::mutate(
+    libelle_support = dplyr::case_when(
+      code_support == 4 ~ "Poissons",
+      code_support == 10 ~ "Diatomées",
+      code_support == 13 ~ "Macroinvertébrés",
+      code_support == 27 ~ "Macrophytes"
     )
+  )
 
 stations_sf <- stations_hydrobio %>%
   dplyr::filter(
@@ -22,22 +30,50 @@ stations_sf <- stations_hydrobio %>%
     coordonnee_x, coordonnee_y,
     code_cours_eau, libelle_cours_eau, code_masse_eau, libelle_masse_eau,
     code_departement
-    ) %>%
-  dplyr::left_join(
-    indices_moy_an %>%
-      dplyr::group_by(code_station_hydrobio) %>%
-      dplyr::summarise(
-        nb_taxons = dplyr::n_distinct(code_support),
-        nb_annee = dplyr::n_distinct(annee)
-      ),
-    by = "code_station_hydrobio"
+    )
+
+fun_summ_eqb <- function(eqb, stations, indices) {
+  stations %>%
+    dplyr::inner_join(
+      indices %>%
+        dplyr::filter(libelle_support %in% eqb) %>%
+        dplyr::group_by(code_station_hydrobio) %>%
+        dplyr::summarise(
+          nb_taxons = dplyr::n_distinct(code_support),
+          nb_annee = dplyr::n_distinct(annee),
+          EQB = paste(eqb, collapse = ", ")
+        ),
+      by = "code_station_hydrobio"
+    )
+}
+
+list(
+  "Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes",
+  c("Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes"),
+  c("Macroinvertébrés", "Diatomées", "Macrophytes")
+) %>%
+  purrr::map_df(
+    .f = fun_summ_eqb,
+    stations = stations_sf,
+    indices = indices_moy_an
   ) %>%
   dplyr::mutate(
-    taille_symbole = sqrt(nb_annee),
+    taille_symbole = dplyr::case_when(
+      nb_annee == 1 ~ 4,
+      nb_annee <= 5 ~ 6,
+      nb_annee <= 10 ~ 8,
+      nb_annee > 10 ~ 12
+    ),
     labo = code_station_hydrobio %in% operations_labo$code_station,
+    colour_eqb = dplyr::case_when(
+      nb_taxons == 1 ~ "#440154FF",
+      nb_taxons == 2 ~ "#31688EFF",
+      nb_taxons == 3 ~ "#35B779FF",
+      nb_taxons == 4 ~ "#FDE725FF"
+    ),
     colour = ifelse(
       code_station_hydrobio %in% operations_labo$code_station,
-      "black",
+      "blue",
       "darkgrey"
     ),
     size = ifelse(
@@ -53,9 +89,20 @@ stations_sf <- stations_hydrobio %>%
   sf::st_transform(crs = 4326) %>%
   dplyr::filter(
     code_departement %in% c(75, 77, 78, 91, 92, 93, 94, 95) |  labo
-  )
-
-saveRDS(stations_sf, file = "data/stations_sf.rds")
+  ) %>%
+  dplyr::mutate(
+    EQB = factor(
+      EQB,
+      levels = c(
+        "Poissons, Macroinvertébrés, Diatomées, Macrophytes",
+        "Macroinvertébrés, Diatomées, Macrophytes",
+        "Macroinvertébrés", "Diatomées", "Macrophytes", "Poissons"
+      )
+    ),
+    libelle_station = paste0(libelle_station_hydrobio, " (", nb_annee, " années de suivi)")
+  ) %>%
+  dplyr::arrange(EQB) %>%
+  saveRDS(file = "data/stations_sf.rds")
 
 data_graphs <- indices_moy_an %>%
   tidyr::complete(
