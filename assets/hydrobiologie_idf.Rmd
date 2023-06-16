@@ -238,6 +238,32 @@ limites_idf_l <- limites_idf %>%
     baseGroups    = c("OSM","Plan IGN","Photo aérienne",  "Etat écologique 2022","Etat biologique 2022", "Etat physico-chimique 2022"),
     overlayGroups = c("Réseau hydrographique", "Indices"),
     options       = leaflet::layersControlOptions(collapsed = TRUE)) %>% 
+    leaflet::addLegend(
+      title = "EQB suivis",
+      position = "bottomleft",
+      colors = viridisLite::viridis(n = 4)[4:1],
+      labels = 4:1
+    ) %>% 
+    leaflegend::addLegendSize(
+      title = htmltools::HTML("Années<br>de suivi"),
+      shape = "circle",
+      values = c(4, 6, 8, 12),
+      color = "black",
+      fillColor = "white",
+      fillOpacity = 0,
+      orientation = "vertical",
+      position = "bottomleft",
+      numberFormat = function(x) {
+        dplyr::case_when(
+          x == 4 ~ "1",
+          x == 6 ~ "2-5",
+          x == 8 ~ "6-10",
+          x == 12 ~ "> 10"
+        )
+      },
+        breaks = c(4, 6, 8, 12),
+      baseSize = 15
+    ) %>% 
     leaflet::fitBounds(
       lng1 = bbox_stations[["xmin"]],
       lat1 = bbox_stations[["ymin"]],
