@@ -275,6 +275,20 @@ plot_chroniques(stations_sf, data_graphs, interactive = TRUE)
 :::
 
 ::::
+```{r, include=TRUE}
+crosstalk::bscols(
+  crosstalk::filter_select(
+    id = "eqb",
+    label = "EQB",
+    sharedData = shared_stations, 
+    group = ~EQB,
+    multiple = FALSE, 
+    allLevels = FALSE,
+    selected = "Poissons, Macroinvertébrés, Diatomées, Macrophytes"
+    )
+)
+
+```
 
 ```{r, eval=FALSE}
 get_taxa_counts <- function(indices, cd_support, max_prel = 200) {
@@ -335,3 +349,4 @@ plot_number_taxa <- function(taxons, ..., group) {
 )
 )
 ```
+
