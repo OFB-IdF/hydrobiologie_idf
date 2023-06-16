@@ -54,7 +54,7 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
       position = ggplot2::position_dodge(preserve = "single")
     ) +
     ggplot2::labs(
-      x = "Durée de la chronique",
+      x = "Années de suivi",
       y = "Nombre de station",
       fill = "\nElément de qualité\nbiologique"
     ) +
@@ -84,7 +84,7 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
       plotly::add_annotations(
         xref = "paper", yref = "paper",
         x = 1, y = -.15,
-        text = "Durée de la chronique",
+        text = "Années de suivi",
         showarrow = FALSE
       ) %>%
       plotly::add_annotations(
