@@ -196,27 +196,30 @@ limites_idf_l <- limites_idf %>%
     legend = FALSE,
     homebutton = FALSE,
     label = FALSE
-    ) +
-  mapview::mapview(
-    stations_sf %>% 
-      dplyr::select(libelle_station_hydrobio, taille_symbole, nb_taxons),
-    layer.name = "Indices",
-    legend = FALSE,
-    label = "libelle_station_hydrobio",
-    popup = leafpop::popupImage(
-      popups_indices[stations_sf$code_station_hydrobio],
-      height = 360, width = 540, embed = FALSE
-    ),
-    cex = "taille_symbole",
-    zcol = "nb_taxons",
-    color = stations_sf$colour,
-    lwd = 2,
-    alpha.region = .75
     )
   ) %>% 
   (
     function(map) {
   map@map <- map@map %>% 
+    leaflet::addCircleMarkers(
+      data = shared_stations,
+      group = "Indices",
+      # legend = FALSE,
+      label = ~libelle_station,
+      popup = leafpop::popupImage(
+        popups_indices[stations_sf$code_station_hydrobio],
+        height = 360, width = 540, embed = FALSE
+        ),
+      popupOptions = leaflet::popupOptions(
+        maxWidth = 540, maxHeight = 360
+      ),
+      radius = ~taille_symbole,
+      fillColor = ~colour_eqb,
+      color = ~colour,
+      weight = 2,
+      opacity = 1,
+      fillOpacity = 0.75
+      ) %>%
   leaflet::addTiles(group = "OSM") %>%
   #addProviderTiles(providers$CartoDB.PositronOnlyLabels, group = "Villes") %>% 
   leaflet::addTiles("http://wxs.ign.fr/choisirgeoportail/wmts?REQUEST=GetTile&SERVICE=WMTS&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
