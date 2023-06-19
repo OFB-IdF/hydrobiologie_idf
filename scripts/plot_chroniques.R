@@ -39,12 +39,13 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
       .groups = "drop"
       ) %>%
     dplyr::mutate(
-      Chronique = cut(
-        nb_annee,
-        breaks = c(0, 5, 10, 15, 20, 50),
-        labels = c("< 5", "5-10", "10-15", "15-20", "> 20 ans"),
-        include.lowest = TRUE
-        )
+      Chronique = dplyr::case_when(
+        nb_annee == 1 ~ "1",
+        nb_annee <= 5 ~ "2-5",
+        nb_annee <= 10 ~ "6-10",
+        nb_annee > 10 ~ "> 10 ans"
+      ) %>%
+        factor(levels = c("1", "2-5", "6-10", "> 10 ans"))
     ) %>%
     dplyr::group_by(EQB, Chronique) %>%
     dplyr::summarise(n = dplyr::n_distinct(code_station_hydrobio), .groups = "drop") %>%
@@ -52,6 +53,14 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
     ggplot2::geom_col(
       mapping = ggplot2::aes(x = Chronique, y = n, fill = EQB),
       position = ggplot2::position_dodge(preserve = "single")
+    ) +
+    ggplot2::scale_fill_manual(
+      values = c(
+        "Poissons" = "#8DB6CD",
+        "Macroinvertébrés" = "#CD6600",
+        "Macrophytes" = "#228B22",
+        "Diatomées" = "#B3EE3A"
+      )
     ) +
     ggplot2::labs(
       x = "Années de suivi",
