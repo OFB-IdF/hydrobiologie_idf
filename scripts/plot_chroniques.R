@@ -20,7 +20,7 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
 
   PlotChroniques <- data_graphs %>%
     dplyr::left_join(
-      dplyr::select(data_stations, code_station_hydrobio, code_departement),
+      dplyr::distinct(data_stations, code_station_hydrobio, code_departement),
       by = "code_station_hydrobio"
     ) %>%
     dplyr::mutate(
@@ -35,9 +35,10 @@ plot_chroniques <- function(data_stations, data_graphs, interactive = FALSE) {
       ) %>%
     dplyr::group_by(idf, code_station_hydrobio, EQB) %>%
     dplyr::summarise(
-      nb_annee = dplyr::n_distinct(annee),
+      nb_annee = dplyr::n_distinct(na.omit(annee)),
       .groups = "drop"
       ) %>%
+    dplyr::filter(nb_annee > 0) %>%
     dplyr::mutate(
       Chronique = dplyr::case_when(
         nb_annee == 1 ~ "1",
