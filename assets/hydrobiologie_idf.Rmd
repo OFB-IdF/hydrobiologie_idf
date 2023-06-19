@@ -18,49 +18,144 @@ import::from("magrittr", "%>%")
 
 ```{r}
 load("../data/referentiels.rda")
+purrr::walk(
+  list.files(path = "../scripts", pattern = ".R", full.names = TRUE),
+  source
+)
 
-if (!file.exists("../data/indices_hydrobio.rds")) {
-  to_update <- TRUE
-} else {
-  old_data <- readRDS("../data/indices_hydrobio.rds") %>% 
-    dplyr::distinct(code_station_hydrobio, code_support, date_prelevement) %>% 
-    dplyr::group_by(code_station_hydrobio, code_support) %>% 
-    dplyr::summarise(old = max(date_prelevement), .groups = "drop")
+codes_departements <- c(75,77,78,91,92,93,94,95)
+codes_departements_extra <- c(10, 52)
+
+choix_eqb <- list(
+  "Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes",
+  c("Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes"),
+  c("Macroinvertébrés", "Diatomées", "Macrophytes")
+)
+codes_indices <- c(2928,5856,5910,7613,6951,7036) #IBMR, IBD, IBG-équivalent, I2M2, Indice invertébrés grand cours d'eau, IPR
+```
+
+```{r}
+openxlsx2::read_xlsx("../data/labo/Historique prog labo.xlsx") %>%
+  janitor::clean_names() %>%
+  (function(df_xl) {
+    indices <- df_xl[1,-seq(3)] %>%
+      t() %>%
+      as.vector() %>%
+      unique()
+
+    purrr::map_dfr(
+      indices,
+      function(i) {
+        df_xl[-1,c(seq(3), which(as.vector(t(df_xl[1,])) == i))] %>%
+          tidyr::pivot_longer(
+            cols = -seq(3),
+            names_to = "annee",
+            values_to = "realisation"
+          ) %>%
+          dplyr::mutate(
+            annee = annee %>%
+              stringr::str_extract_all(
+                pattern = "\\d{4}"
+              ) %>%
+              as.numeric(),
+            indice = i,
+            code_station = paste0("0", code_station)
+          ) %>%
+          dplyr::filter(realisation == "X") %>%
+          dplyr::select(
+            cours_deau, commune, code_station, indice, annee, realisation
+          )
+      }
+    ) %>%
+      dplyr::mutate(
+        code_indice = dplyr::case_when(
+          indice == "IBD" ~ "5856",
+          indice == "MPCE" ~ "5910",
+          indice == "IBMR" ~ "2928"
+        )
+      ) %>%
+      (function(df) {
+        dplyr::bind_rows(
+          df,
+          df %>%
+            dplyr::filter(indice == "MPCE") %>%
+            dplyr::mutate(code_indice = "7613")
+        )
+      })
+
+  }) %>%
+  saveRDS(file = "../data/operations_labo.rds")
+
+suivi_regie <- readRDS("../data/operations_labo.rds")
+```
+
+```{r}
+to_update <- check_updates(
+  codes_departements = codes_departements,
+  codes_departements_extra = codes_departements_extra,
+  code_indice = codes_indices,
+  limites_zone = limites_sn,
+  suivi_regie = suivi_regie,
+  dest_folder = "../data"
+)
   
-  new_data <- hubeau::get_hydrobio_indices(
-  list(
-    code_departement = "75,77,78,91,92,93,94,95,10,52",
-    code_indice = "2928,5856,5910,7613,6951,7036" #IBMR, IBD, IBG-équivalent, I2M2, Indice invertébrés grand cours d'eau, IPR
-  )
-) %>%
-  sf::st_as_sf(coords = c("coordonnee_x", "coordonnee_y"), crs = 2154, remove=FALSE) %>%
-  rmapshaper::ms_clip(limites_sn) %>%
-  dplyr::distinct(
-    code_station_hydrobio, code_support, libelle_support, code_prelevement, date_prelevement, code_indice, libelle_indice, resultat_indice, code_qualification, libelle_qualification
-  ) %>%
-  dplyr::mutate(
-    date_prelevement = lubridate::as_date(date_prelevement)
-  ) %>%
-  dplyr::mutate(annee = lubridate::year(date_prelevement)) %>%
-  dplyr::filter(!is.na(resultat_indice)) %>% 
-    dplyr::distinct(code_station_hydrobio, code_support, date_prelevement) %>% 
-    dplyr::group_by(code_station_hydrobio, code_support) %>% 
-    dplyr::summarise(new = max(date_prelevement), .groups = "drop")
-  
-  to_update <- dplyr::full_join(
-    old_data, new_data,
-    by = c("code_station_hydrobio", "code_support")
-  ) %>% 
-    dplyr::mutate(to_update = new > old | (!is.na(new) & is.na(old))) %>% 
-    dplyr::pull(to_update) %>% 
-    any()
-}
-  
+```
+
+```{r}
 if (to_update) {
-  source("../scripts/get_data_hydrobio.R")
-  source("../scripts/prep_data.R")
-  source("../scripts/prep_graphs.R")
+  telecharger_stations(
+    code_departement = c(codes_departements, codes_departements_extra),
+    limites_zone = limites_sn,
+    suivi_regie = suivi_regie
+    ) %>%
+    dplyr::filter(code_departement %in% codes_departements |  regie) %>% 
+    (function(stations) {
+      stations %>% 
+        saveRDS(file = "../data/stations_hydrobio.rds")
+      
+      stations %>%
+        sf::st_transform(crs = 4326) %>%
+        sf::st_bbox() %>%
+        saveRDS(file = "../data/bbox_stations.rds")
+    })
+    
+  stations_hydrobio <- readRDS("../data/stations_hydrobio.rds")
+  
+  telecharger_indices(
+    code_departement = c(codes_departements, codes_departements_extra),
+    code_indice = codes_indices,
+    limites_zone = limites_sn,
+    suivi_regie = suivi_regie
+  ) %>%
+    dplyr::filter(
+      code_station_hydrobio %in% stations_hydrobio$code_station_hydrobio
+      ) %>% 
+    saveRDS(file = "../data/indices_hydrobio.rds")
+  
+  indices_hydrobio <- readRDS("../data/indices_hydrobio.rds")
+  
+  prep_data_carte(
+    stations = stations_hydrobio,
+    indices = indices_hydrobio,
+    liste_eqb = choix_eqb
+  ) %>%
+    saveRDS(file = "../data/stations_sf.rds")
+  
+  prep_data_graph(
+    stations = stations_hydrobio,
+    indices = indices_hydrobio,
+    suivi_regie = suivi_regie
+  ) %>%
+    saveRDS(file = "../data/data_graphs.rds")
+  
+  donnees_popup <- readRDS("../data/data_graphs.rds")
+  
+  prep_popups(
+    donnees_popups = donnees_popup,
+    dest_folder = "../www/popups"
+  )
 }
+
 ```
 
 
