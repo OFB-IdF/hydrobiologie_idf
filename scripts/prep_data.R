@@ -36,27 +36,22 @@ fun_summ_eqb <- function(eqb, stations, indices) {
   stations %>%
     dplyr::inner_join(
       indices %>%
-        dplyr::filter(libelle_support %in% eqb) %>%
         dplyr::group_by(code_station_hydrobio) %>%
+        dplyr::mutate(nb_taxons = dplyr::n_distinct(code_support)) %>%
+        dplyr::ungroup() %>%
+        dplyr::filter(libelle_support %in% eqb) %>%
+        dplyr::group_by(code_station_hydrobio, nb_taxons) %>%
         dplyr::summarise(
-          nb_taxons = dplyr::n_distinct(code_support),
           nb_annee = dplyr::n_distinct(annee),
-          EQB = paste(eqb, collapse = ", ")
+          EQB = paste(eqb, collapse = ", ") %>%
+            factor(levels = c(
+              "Poissons, Macroinvertébrés, Diatomées, Macrophytes",
+              "Macroinvertébrés, Diatomées, Macrophytes",
+              "Macroinvertébrés", "Diatomées", "Macrophytes", "Poissons"
+            ))
         ),
       by = "code_station_hydrobio"
-    )
-}
-
-list(
-  "Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes",
-  c("Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes"),
-  c("Macroinvertébrés", "Diatomées", "Macrophytes")
-) %>%
-  purrr::map_df(
-    .f = fun_summ_eqb,
-    stations = stations_sf,
-    indices = indices_moy_an
-  ) %>%
+    ) %>%
   dplyr::mutate(
     taille_symbole = dplyr::case_when(
       nb_annee == 1 ~ 4,
@@ -81,6 +76,18 @@ list(
       4,
       2
     )
+  )
+}
+
+list(
+  "Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes",
+  c("Poissons", "Macroinvertébrés", "Diatomées", "Macrophytes"),
+  c("Macroinvertébrés", "Diatomées", "Macrophytes")
+) %>%
+  purrr::map_df(
+    .f = fun_summ_eqb,
+    stations = stations_sf,
+    indices = indices_moy_an
   ) %>%
   # sf::st_as_sf(
   #   coords = c("coordonnee_x", "coordonnee_y"), remove = FALSE,
@@ -91,14 +98,6 @@ list(
     code_departement %in% c(75, 77, 78, 91, 92, 93, 94, 95) |  labo
   ) %>%
   dplyr::mutate(
-    EQB = factor(
-      EQB,
-      levels = c(
-        "Poissons, Macroinvertébrés, Diatomées, Macrophytes",
-        "Macroinvertébrés, Diatomées, Macrophytes",
-        "Macroinvertébrés", "Diatomées", "Macrophytes", "Poissons"
-      )
-    ),
     libelle_station = paste0(libelle_station_hydrobio, " (", nb_annee, " années de suivi)")
   ) %>%
   dplyr::arrange(EQB) %>%
