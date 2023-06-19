@@ -27,16 +27,19 @@ prep_data_carte <- function(stations, indices, liste_eqb) {
           dplyr::group_by(code_station_hydrobio) %>%
           dplyr::mutate(nb_taxons = dplyr::n_distinct(code_support)) %>%
           dplyr::ungroup() %>%
+          dplyr::group_by(code_station_hydrobio, code_support) %>%
+          dplyr::mutate(nb_annee = dplyr::n_distinct(annee)) %>%
+          dplyr::ungroup() %>%
           dplyr::filter(libelle_support %in% eqb) %>%
           dplyr::group_by(code_station_hydrobio, nb_taxons) %>%
           dplyr::summarise(
-            nb_annee = dplyr::n_distinct(annee),
             EQB = paste(eqb, collapse = ", ") %>%
               factor(levels = c(
                 "Poissons, Macroinvertébrés, Diatomées, Macrophytes",
                 "Macroinvertébrés, Diatomées, Macrophytes",
                 "Macroinvertébrés", "Diatomées", "Macrophytes", "Poissons"
-              ))
+              )),
+            nb_annee = max(nb_annee)
           ),
         by = "code_station_hydrobio"
       ) %>%
