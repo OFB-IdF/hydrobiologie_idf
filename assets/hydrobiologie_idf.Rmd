@@ -184,9 +184,6 @@ popups_indices <- file.path(
       x
     })
 
-```
-
-```{r, include=TRUE}
 shared_stations <- crosstalk::SharedData$new(stations_sf %>% 
       dplyr::select(EQB, libelle_station, taille_symbole, colour_eqb, colour))
 
@@ -287,8 +284,7 @@ limites_idf_l <- limites_idf %>%
     leaflet::addCircleMarkers(
       data = shared_stations,
       group = "Indices",
-      # legend = FALSE,
-      label = ~libelle_station,
+      label = ~lapply(libelle_station, htmltools::HTML),
       popup = leafpop::popupImage(
         popups_indices[stations_sf$code_station_hydrobio],
         height = 360, width = 540, embed = FALSE

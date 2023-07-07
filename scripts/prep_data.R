@@ -24,6 +24,17 @@ prep_data_carte <- function(stations, indices, liste_eqb) {
     stations %>%
       dplyr::inner_join(
         indices %>%
+          dplyr::mutate(
+            libelle_court_indice = dplyr::case_when(
+              code_indice == 7036 ~ "IPR",
+              code_indice == 5856 ~ "IBD",
+              code_indice == 5910 ~ "IBG équivalent",
+              code_indice == 2928 ~ "IBMR",
+              code_indice == 7613 ~ "I2M2",
+              code_indice == 6951 ~ "Inv. GCE"
+            ) %>%
+              factor(levels = c("IBG équivalent", "I2M2", "Inv. GCE", "IBD", "IBMR", "IPR"))
+          ) %>%
           dplyr::group_by(code_station_hydrobio) %>%
           dplyr::mutate(nb_taxons = dplyr::n_distinct(code_support)) %>%
           dplyr::ungroup() %>%
@@ -31,7 +42,16 @@ prep_data_carte <- function(stations, indices, liste_eqb) {
           dplyr::mutate(nb_annee = dplyr::n_distinct(annee)) %>%
           dplyr::ungroup() %>%
           dplyr::filter(libelle_support %in% eqb) %>%
+          dplyr::group_by(code_station_hydrobio, code_indice) %>%
+          dplyr::mutate(
+            dernier_indice = paste0(
+              libelle_court_indice[annee == max(annee)], ": ",
+              round(resultat_moy[annee == max(annee)], 2),
+              " (", annee[annee == max(annee)], ")"
+            )
+          ) %>%
           dplyr::group_by(code_station_hydrobio, nb_taxons) %>%
+          dplyr::arrange(libelle_court_indice) %>%
           dplyr::summarise(
             EQB = paste(eqb, collapse = ", ") %>%
               factor(levels = c(
@@ -39,7 +59,8 @@ prep_data_carte <- function(stations, indices, liste_eqb) {
                 "Macroinvertébrés, Diatomées, Macrophytes",
                 "Macroinvertébrés", "Diatomées", "Macrophytes", "Poissons"
               )),
-            nb_annee = max(nb_annee)
+            nb_annee = max(nb_annee),
+            derniers_indices = paste(unique(dernier_indice), collapse = "<br>")
           ),
         by = "code_station_hydrobio"
       ) %>%
@@ -82,7 +103,8 @@ prep_data_carte <- function(stations, indices, liste_eqb) {
     sf::st_transform(crs = 4326) %>%
     dplyr::mutate(
       libelle_station = paste0(
-        libelle_station_hydrobio, " (", nb_annee, " années de suivi)"
+        "<b>", libelle_station_hydrobio, "</b> (", nb_annee, " années de suivi)<br>",
+        "<small>", derniers_indices, "</small>"
         )
       ) %>%
     dplyr::arrange(EQB)
