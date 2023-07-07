@@ -220,7 +220,7 @@ limites_idf_l <- limites_idf %>%
       fillColor = ~unname(couleurs_etat[as.character(ETAT.BIOLOGIQUE)]),
       fillOpacity = .5,
       label = ~LABEL,
-      popup = FALSE,
+      popup = NULL,
       weight = 1,
       options = leaflet::pathOptions(pane = "background")
     ) %>% 
@@ -234,7 +234,7 @@ limites_idf_l <- limites_idf %>%
       fillColor = ~unname(couleurs_etat[as.character(ETAT.ECOLOGIQUE)]),
       fillOpacity = .5,
       label = ~LABEL,
-      popup = FALSE,
+      popup = NULL,
       weight = 1,
       options = leaflet::pathOptions(pane = "background")
     ) %>% 
@@ -248,27 +248,17 @@ limites_idf_l <- limites_idf %>%
       fillColor = ~unname(couleurs_etat[as.character(ETAT.PHYSICO.CHIMIQUE)]),
       fillOpacity = .5,
       label = ~LABEL,
-      popup = FALSE,
+      popup = NULL,
       weight = 1,
       options = leaflet::pathOptions(pane = "background")
     ) %>% 
-    #     mapview::mapview(
-    #   reseau_hydro,
-    #   layer.name = "Réseau hydrographique",
-    #   legend = FALSE,
-    #   homebutton = FALSE,
-    #   col.regions = "#00B2EE",
-    #   cex = 1,
-    #   label = "TopoOH",
-    #   popup = FALSE
-    # ) +
     leaflet::addPolylines(
       data = reseau_hydro,
       group = "Réseau hydrographique",
       color = "#00B2EE",
       weight = 1,
       label = ~TopoOH,
-      popup = FALSE,
+      popup = NULL,
       opacity = 1,
       options = leaflet::pathOptions(pane = "background")
     ) %>% 
@@ -277,7 +267,7 @@ limites_idf_l <- limites_idf %>%
       fillColor = "white",
       fillOpacity = .75,
       stroke = FALSE,
-      popup = FALSE, label = FALSE,
+      popup = NULL, label = NULL,
       options = leaflet::pathOptions(pane = "masks")
     ) %>% 
     leaflet::addPolylines(
