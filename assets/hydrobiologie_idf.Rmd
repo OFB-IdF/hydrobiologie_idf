@@ -190,6 +190,12 @@ popups_indices <- file.path(
 shared_stations <- crosstalk::SharedData$new(stations_sf %>% 
       dplyr::select(EQB, libelle_station, taille_symbole, colour_eqb, colour))
 
+limites_sn_l <- limites_sn %>% 
+      sf::st_cast(to = "LINESTRING") %>% 
+  sf::st_transform(crs = 4326)
+limites_idf_l <- limites_idf %>% 
+      sf::st_cast(to = "LINESTRING") %>% 
+  sf::st_transform(crs = 4326)
 ```
 
 :::: {style="display: flex;"}
@@ -199,103 +205,95 @@ shared_stations <- crosstalk::SharedData$new(stations_sf %>%
 ##
 
 ```{r, include=TRUE, out.width='100%', out.height='500px'}
-limites_sn_l <- limites_sn %>% 
-      sf::st_cast(to = "LINESTRING")
-limites_idf_l <- limites_idf %>% 
-      sf::st_cast(to = "LINESTRING")
 
-(
-  mapview::mapview(
-    edl_2022 %>% 
+  leaflet::leaflet() %>% 
+    leaflet::addMapPane("background", zIndex = 400) %>% 
+    leaflet::addMapPane("masks", zIndex = 450) %>% 
+    leaflet::addMapPane("foreground", zIndex = 500) %>% 
+    leaflet::addPolygons(
+      data = edl_2022 %>% 
       dplyr::mutate(
         LABEL = paste0(NOM.MASSE.D.EAU, "<br>", ETAT.BIOLOGIQUE)
       ) %>% 
       dplyr::select(LABEL, ETAT.BIOLOGIQUE),
-    layer.name = "Etat biologique 2022",
-    legend = FALSE,
-    homebutton = FALSE,
-    zcol = "ETAT.BIOLOGIQUE",
-    label = "LABEL",
-    alpha.regions = .5,
-    col.regions = unname(couleurs_etat[as.character(edl_2022$ETAT.BIOLOGIQUE)]),
-    popup = FALSE,
-    lwd = 1
-  ) +
-  mapview::mapview(
-    edl_2022 %>% 
+      group = "Etat biologique 2022",
+      fillColor = ~unname(couleurs_etat[as.character(ETAT.BIOLOGIQUE)]),
+      fillOpacity = .5,
+      label = ~LABEL,
+      popup = FALSE,
+      weight = 1,
+      options = leaflet::pathOptions(pane = "background")
+    ) %>% 
+    leaflet::addPolygons(
+      data = edl_2022 %>% 
       dplyr::mutate(
         LABEL = paste0(NOM.MASSE.D.EAU, "<br>", ETAT.ECOLOGIQUE)
       ) %>% 
       dplyr::select(LABEL, ETAT.ECOLOGIQUE),
-    layer.name = "Etat écologique 2022",
-    legend = FALSE,
-    homebutton = FALSE,
-    zcol = "ETAT.ECOLOGIQUE",
-    label = "LABEL",
-    alpha.regions = .5,
-    col.regions = unname(couleurs_etat[as.character(edl_2022$ETAT.ECOLOGIQUE)]),
-    popup = FALSE,
-    lwd = 1
-  ) +
-  mapview::mapview(
-    edl_2022 %>% 
+      group = "Etat écologique 2022",
+      fillColor = ~unname(couleurs_etat[as.character(ETAT.ECOLOGIQUE)]),
+      fillOpacity = .5,
+      label = ~LABEL,
+      popup = FALSE,
+      weight = 1,
+      options = leaflet::pathOptions(pane = "background")
+    ) %>% 
+    leaflet::addPolygons(
+      data = edl_2022 %>% 
       dplyr::mutate(
         LABEL = paste0(NOM.MASSE.D.EAU, "<br>", ETAT.PHYSICO.CHIMIQUE)
       ) %>% 
       dplyr::select(LABEL, ETAT.PHYSICO.CHIMIQUE),
-    layer.name = "Etat physico-chimique 2022",
-    legend = FALSE,
-    homebutton = FALSE,
-    zcol = "ETAT.PHYSICO.CHIMIQUE",
-    label = "LABEL",
-    alpha.regions = .5,
-    col.regions = unname(couleurs_etat[as.character(edl_2022$ETAT.PHYSICO.CHIMIQUE)]),
-    popup = FALSE,
-    lwd = 1
-  ) +
-  mapview::mapview(
-    masque_metropole,
-    alpha.regions = .75,
-    legend = FALSE,
-    homebutton = FALSE,
-    stroke = FALSE,
-    col.regions = "white",
-    label = NULL,
-    labelOptions = c(opacity = 0),
-    popup = FALSE
-  ) +
-    mapview::mapview(
-      reseau_hydro,
-      layer.name = "Réseau hydrographique",
-      legend = FALSE,
-      homebutton = FALSE,
-      col.regions = "#00B2EE",
-      cex = 1,
-      label = "TopoOH",
-      popup = FALSE
-    ) +
-  mapview::mapview(
-    limites_sn_l,
-    lwd = 2,
-    color = "black",
-    popup = FALSE,
-    legend = FALSE,
-    homebutton = FALSE,
-    label = FALSE
-    ) +
-  mapview::mapview(
-    limites_idf_l,
-    lwd = 2,
-    color = "black",
-    popup = FALSE,
-    legend = FALSE,
-    homebutton = FALSE,
-    label = FALSE
-    )
-  ) %>% 
-  (
-    function(map) {
-  map@map <- map@map %>% 
+      group = "Etat physico-chimique 2022",
+      fillColor = ~unname(couleurs_etat[as.character(ETAT.PHYSICO.CHIMIQUE)]),
+      fillOpacity = .5,
+      label = ~LABEL,
+      popup = FALSE,
+      weight = 1,
+      options = leaflet::pathOptions(pane = "background")
+    ) %>% 
+    #     mapview::mapview(
+    #   reseau_hydro,
+    #   layer.name = "Réseau hydrographique",
+    #   legend = FALSE,
+    #   homebutton = FALSE,
+    #   col.regions = "#00B2EE",
+    #   cex = 1,
+    #   label = "TopoOH",
+    #   popup = FALSE
+    # ) +
+    leaflet::addPolylines(
+      data = reseau_hydro,
+      group = "Réseau hydrographique",
+      color = "#00B2EE",
+      weight = 1,
+      label = ~TopoOH,
+      popup = FALSE,
+      opacity = 1,
+      options = leaflet::pathOptions(pane = "background")
+    ) %>% 
+    leaflet::addPolygons(
+      data = masque_metropole,
+      fillColor = "white",
+      fillOpacity = .75,
+      stroke = FALSE,
+      popup = FALSE, label = FALSE,
+      options = leaflet::pathOptions(pane = "masks")
+    ) %>% 
+    leaflet::addPolylines(
+      data = limites_sn_l, 
+      color = "black",
+      opacity = 1,
+      weight = 2,
+      options = leaflet::pathOptions(pane = "masks")
+      ) %>% 
+    leaflet::addPolylines(
+      data = limites_idf_l, 
+      color = "black",
+      opacity = 1,
+      weight = 2,
+      options = leaflet::pathOptions(pane = "masks")
+      ) %>% 
     leaflet::addCircleMarkers(
       data = shared_stations,
       group = "Indices",
@@ -313,7 +311,8 @@ limites_idf_l <- limites_idf %>%
       color = ~colour,
       weight = 2,
       opacity = 1,
-      fillOpacity = 0.75
+      fillOpacity = 0.75,
+      options = leaflet::pathOptions(pane = "foreground")
       ) %>%
   leaflet::addTiles(group = "OSM") %>%
   #addProviderTiles(providers$CartoDB.PositronOnlyLabels, group = "Villes") %>% 
@@ -366,10 +365,6 @@ limites_idf_l <- limites_idf %>%
       lat2 = bbox_stations[["ymax"]]
     ) %>% 
     leaflet.extras::addResetMapButton()
-  
-  map
-    }
-)
 ```
 
 :::
