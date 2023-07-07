@@ -103,7 +103,7 @@ prep_data_carte <- function(stations, indices, liste_eqb) {
     sf::st_transform(crs = 4326) %>%
     dplyr::mutate(
       libelle_station = paste0(
-        "<b>", libelle_station_hydrobio, "</b> (", nb_annee, " années de suivi)<br>",
+        "<b>", libelle_station_hydrobio, "</b><br>(", nb_annee, " années de suivi)<br>",
         "<small>", derniers_indices, "</small>"
         )
       ) %>%
