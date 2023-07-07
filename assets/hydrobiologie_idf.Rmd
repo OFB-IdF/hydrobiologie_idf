@@ -260,7 +260,7 @@ limites_idf_l <- limites_idf %>%
       label = ~TopoOH,
       popup = NULL,
       opacity = 1,
-      options = leaflet::pathOptions(pane = "background")
+      options = leaflet::pathOptions(pane = "masks")
     ) %>% 
     leaflet::addPolygons(
       data = masque_metropole,
